@@ -1,0 +1,52 @@
+name: Flutter Android Build
+
+on:
+  push:
+    branches: [ "main", "master" ] # سيعمل الكود عند الدفع لفرع main أو master
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. جلب الكود من المستودع
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. إعداد جافا (ضروري لبناء أندرويد)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      # 3. إعداد فلاتر (استناداً للنسخة الموجودة في صورتك 3.22.2)
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.2'
+          channel: 'stable'
+          cache: true
+
+      # 4. قبول تراخيص أندرويد (حل المشكلة التي ظهرت في السطر 58)
+      - name: Accept Android Licenses
+        run: yes | flutter doctor --android-licenses
+
+      # 5. جلب المكتبات (Dependencies)
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 6. بناء ملف APK (Release)
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 7. رفع الملف الناتج ليكون قابلاً للتحميل من قسم Actions
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
